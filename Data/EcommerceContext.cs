@@ -9,7 +9,9 @@ namespace Ecommerce.Data
 {
     public class EcommerceContext : DbContext
     {
-       
+        public EcommerceContext()
+        {
+        }
 
         public EcommerceContext (DbContextOptions<EcommerceContext> options)
             : base(options)

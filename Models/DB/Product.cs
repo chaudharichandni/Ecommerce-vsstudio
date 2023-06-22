@@ -9,7 +9,7 @@ namespace Ecommerce.Models.DB
         public int? CategoryId { get; set; }
         public string? Name { get; set; }
         public string? Image { get; set; }
-        public double? Mrp { get; set; }
-        public double? Rate { get; set; }
+        public float? Mrp { get; set; }
+        public float? Rate { get; set; }
     }
 }

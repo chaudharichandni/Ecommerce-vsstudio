@@ -7,18 +7,26 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Ecommerce.Data;
 using Ecommerce.Models;
+using System.Web;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting;
+using Ecommerce.Models.DB;
 
 namespace Ecommerce.Controllers
 {
     public class CategoriesController : Controller
     {
         private readonly EcommerceContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public CategoriesController(EcommerceContext context)
+
+        public CategoriesController(EcommerceContext context, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
+            _webHostEnvironment = webHostEnvironment;
         }
 
+        
         // GET: Categories
         public async Task<IActionResult> Index()
         {
@@ -56,7 +64,7 @@ namespace Ecommerce.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Image")] Category category)
+        public async Task<IActionResult> Create([Bind("Id,Name,Image")] Models.DB.Category category)
         {
             if (ModelState.IsValid)
             {
@@ -88,7 +96,7 @@ namespace Ecommerce.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Image")] Category category)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Image")] Models.DB.Category category)
         {
             if (id != category.Id)
             {
@@ -150,14 +158,70 @@ namespace Ecommerce.Controllers
             {
                 _context.Category.Remove(category);
             }
-            
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+
         }
+
+        [HttpPost]
+        public async Task<IActionResult> UploadImage(Models.DB.Category model, IFormFile imageFile)
+        {
+            if (ModelState.IsValid)
+            {
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    // Get the file name and extension
+                    var fileName = Path.GetFileName(imageFile.FileName);
+                    var extension = Path.GetExtension(fileName);
+
+                    // Generate a unique file name
+                    var uniqueFileName = Guid.NewGuid().ToString() + extension;
+
+
+                    // Set the path where the image will be saved
+                    var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "Images", uniqueFileName);
+
+                    // Save the image to the server
+                    using (var fileStream = new FileStream(imagePath, FileMode.Create))
+                    {
+                        await imageFile.CopyToAsync(fileStream);
+                    }
+
+                    // Update the model with the image path
+                    model.Image = "/Images/" + uniqueFileName;
+
+                    // Save the updated model to the database
+                   
+                    
+                        var entity = _context.Category.Find(model.Id);
+                        if (entity != null)
+                        {
+                            // Update the entity with the new image path
+                            entity.Image = model.Image;
+
+                            // Save changes to the database
+                            _context.SaveChanges();
+                        }
+                    
+                }
+
+                // Redirect to the index action after successful upload
+                return RedirectToAction("Index");
+            }
+
+            // If the model state is invalid, return the view with validation errors
+            return View(model);
+        }
+
 
         private bool CategoryExists(int id)
         {
           return (_context.Category?.Any(e => e.Id == id)).GetValueOrDefault();
         }
+
+        
     }
+
+    
 }
